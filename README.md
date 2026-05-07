@@ -156,24 +156,29 @@ Lo script invia un messaggio Telegram in tutti questi casi:
 | ℹ️ Già prenotato                | Avviso con data e orario                 |
 | ⚠️ Nessuna sessione disponibile | Avviso con la data cercata               |
 | ⚠️ Sessioni al completo         | Avviso con la data                       |
-| 🔴 Token TIMP scaduto           | Istruzioni per aggiornare `.env`         |
+| � Token TIMP scaduto (401)      | Re-login automatico + notifica esito     |
 | ❌ Errore generico              | Codice HTTP e dettaglio dell'errore      |
 
 **`src/check-token.ts` — verifica token:**
 
-| Situazione          | Messaggio                                 |
-| ------------------- | ----------------------------------------- |
-| ✅ Token valido     | Conferma che il token è ancora attivo     |
-| 🔴 Token non valido | Motivo e istruzioni per aggiornare `.env` |
-| ❌ Errore di rete   | Dettaglio dell'errore                     |
+| Situazione                          | Messaggio                                     |
+| ----------------------------------- | --------------------------------------------- |
+| ✅ Token valido                     | Conferma che il token è ancora attivo         |
+| 🔄 Token scaduto → re-login ok      | Nuovo token salvato in `.env` automaticamente |
+| 🔴 Token scaduto → re-login fallito | Credenziali errate o API irraggiungibile      |
+| ❌ Errore di rete                   | Dettaglio dell'errore                         |
 
 ---
 
-## Aggiornare il token TIMP
+## Gestione del token TIMP
 
-Il `TIMP_API_TOKEN` potrebbe scadere. In quel caso arriva una notifica 🔴 su Telegram. Per aggiornarlo:
+Il `TIMP_API_TOKEN` si rinnova **automaticamente**: quando scade, lo script esegue un re-login con le credenziali in `.env` e salva il nuovo token direttamente nel file `.env`, senza nessun intervento manuale.
 
-1. Apri [web.timp.pro](https://web.timp.pro) nel browser
-2. Apri i DevTools → Network → filtra per `api/user_app`
-3. Copia il valore dell'header `api-access-token` da una qualsiasi richiesta
-4. Aggiornalo nel file `.env`
+Il rinnovo avviene in due occasioni:
+
+- **Sera alle 17:00** — `check-token.ts` verifica il token e, se scaduto, lo rinnova
+- **Al momento della prenotazione** — se `index.ts` riceve un 401, rinnova il token e ritenta immediatamente
+
+In entrambi i casi ricevi una notifica Telegram con l'esito.
+
+> **Se il re-login fallisce** (es. password cambiata) ricevi una notifica 🔴. In quel caso aggiorna `TIMP_PASSWORD` nel file `.env`.
