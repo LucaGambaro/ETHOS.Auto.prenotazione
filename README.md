@@ -37,12 +37,13 @@ Il crontab va impostato in modo che lo script venga eseguito esattamente a quegl
 
 ```
 src/
-  config.ts    → variabili d'ambiente, targetDate(), bookingSchedule()
-  telegram.ts  → helper sendTelegram() per le notifiche
-  timp.ts      → chiamate API TIMP (admissions, prenotazione, verifica ticket)
-  index.ts     → logica principale: orchestra config → TIMP → Telegram
-.env           → credenziali (non committato)
-.env.example   → template delle variabili necessarie
+  config.ts       → variabili d'ambiente, targetDate(), bookingSchedule()
+  telegram.ts     → helper sendTelegram() per le notifiche
+  timp.ts         → chiamate API TIMP (admissions, prenotazione, verifica ticket)
+  index.ts        → logica principale: orchestra config → TIMP → Telegram
+  check-token.ts  → verifica giornaliera della validità del token TIMP
+.env              → credenziali (non committato)
+.env.example      → template delle variabili necessarie
 ```
 
 ---
@@ -91,7 +92,11 @@ TELEGRAM_CHAT_ID=<il tuo chat ID>
 ### 4. Test manuale
 
 ```bash
+# Prenotazione
 npx tsx src/index.ts
+
+# Verifica token
+npx tsx src/check-token.ts
 ```
 
 Dovresti ricevere un messaggio Telegram con l'esito.
@@ -117,6 +122,9 @@ Aggiungi queste 3 righe (sostituisci il percorso assoluto con quello reale del p
 
 # Sab — apertura prenotazioni alle 06:00
 0 6 * * 6 cd /percorso/assoluto/timp-auto-prenotazione && npx tsx src/index.ts >> /tmp/palestra.log 2>&1
+
+# Check validità token ogni sera alle 17:00
+0 17 * * * cd /percorso/assoluto/timp-auto-prenotazione && npx tsx src/check-token.ts >> /tmp/palestra.log 2>&1
 ```
 
 > **Nota:** verifica che `npx` sia nel PATH del crontab. Se lo script non parte, usa il percorso assoluto:
@@ -137,6 +145,11 @@ tail -f /tmp/palestra.log
 
 Lo script invia un messaggio Telegram in tutti questi casi:
 
+| Situazione | Messaggio |
+| ---------- | --------- |
+
+**`src/index.ts` — prenotazione:**
+
 | Situazione                      | Messaggio                                |
 | ------------------------------- | ---------------------------------------- |
 | ✅ Prenotazione riuscita        | Data, orario sessione, ticket ID e stato |
@@ -145,6 +158,14 @@ Lo script invia un messaggio Telegram in tutti questi casi:
 | ⚠️ Sessioni al completo         | Avviso con la data                       |
 | 🔴 Token TIMP scaduto           | Istruzioni per aggiornare `.env`         |
 | ❌ Errore generico              | Codice HTTP e dettaglio dell'errore      |
+
+**`src/check-token.ts` — verifica token:**
+
+| Situazione          | Messaggio                                 |
+| ------------------- | ----------------------------------------- |
+| ✅ Token valido     | Conferma che il token è ancora attivo     |
+| 🔴 Token non valido | Motivo e istruzioni per aggiornare `.env` |
+| ❌ Errore di rete   | Dettaglio dell'errore                     |
 
 ---
 
