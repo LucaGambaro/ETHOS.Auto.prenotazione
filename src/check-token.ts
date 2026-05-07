@@ -1,4 +1,5 @@
-import { config, targetDate } from "./config.js";
+import { refreshToken } from "./auth.js";
+import { config } from "./config.js";
 import { sendTelegram } from "./telegram.js";
 
 async function checkToken(): Promise<void> {
@@ -11,20 +12,17 @@ async function checkToken(): Promise<void> {
   let detail = "";
 
   try {
-    const res = await fetch(
-      `${config.timpBaseUrl}/activities/${config.timpActivityId}/admissions?date=${targetDate()}`,
-      {
-        headers: {
-          accept: "application/timp.user-app-v2",
-          "api-access-key": config.timpApiKey,
-          "api-access-token": config.timpApiToken,
-          "app-platform": "web",
-          "app-version": "8.15.0",
-          "content-type": "application/json",
-          "time-zone": "Europe/Rome",
-        },
+    const res = await fetch(`${config.timpBaseUrl}/users/profile_feed`, {
+      headers: {
+        accept: "application/timp.user-app-v2",
+        "api-access-key": config.timpApiKey,
+        "api-access-token": config.timpApiToken,
+        "app-platform": "web",
+        "app-version": "8.15.0",
+        "content-type": "application/json",
+        "time-zone": "Europe/Rome",
       },
-    );
+    });
 
     if (res.status === 401) {
       ok = false;
@@ -40,12 +38,25 @@ async function checkToken(): Promise<void> {
     detail = `errore di rete: ${err instanceof Error ? err.message : String(err)}`;
   }
 
-  const msg = ok
-    ? "✅ Token TIMP valido"
-    : `🔴 Token TIMP non valido (${detail})\nAggiorna TIMP_API_TOKEN nel file .env`;
+  if (ok) {
+    const msg = "✅ Token TIMP valido";
+    console.log(msg);
+    await sendTelegram(msg);
+    return;
+  }
 
-  console.log(msg);
-  await sendTelegram(msg);
+  // Token non valido: tenta il re-login automatico
+  console.log(`[Token] Non valido (${detail}) — avvio re-login automatico...`);
+  try {
+    await refreshToken();
+    const msg = `🔄 Token TIMP rinnovato automaticamente (era scaduto: ${detail})`;
+    console.log(msg);
+    await sendTelegram(msg);
+  } catch (loginErr) {
+    const msg = `🔴 Token TIMP scaduto e re-login fallito: ${loginErr instanceof Error ? loginErr.message : String(loginErr)}`;
+    console.error(msg);
+    await sendTelegram(msg);
+  }
 }
 
 checkToken().catch(async (err) => {

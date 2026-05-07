@@ -4,6 +4,8 @@ export const config = {
   timpApiKey: process.env.TIMP_API_KEY ?? "",
   timpApiToken: process.env.TIMP_API_TOKEN ?? "",
   timpActivityId: process.env.TIMP_ACTIVITY_ID ?? "",
+  timpEmail: process.env.TIMP_EMAIL ?? "",
+  timpPassword: process.env.TIMP_PASSWORD ?? "",
   telegramBotToken: process.env.TELEGRAM_BOT_TOKEN ?? "",
   telegramChatId: process.env.TELEGRAM_CHAT_ID ?? "",
   timpBaseUrl: "https://panel.timp.pro/api/user_app/v2",

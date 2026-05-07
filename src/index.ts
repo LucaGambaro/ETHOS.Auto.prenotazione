@@ -1,3 +1,4 @@
+import { refreshToken } from "./auth.js";
 import { bookingSchedule, targetDate } from "./config.js";
 import { sendTelegram } from "./telegram.js";
 import {
@@ -7,21 +8,8 @@ import {
   fetchTicket,
 } from "./timp.js";
 
-async function main(): Promise<void> {
-  const schedule = bookingSchedule();
-  const timestamp = new Date().toLocaleString("it-IT", {
-    timeZone: "Europe/Rome",
-  });
-
-  if (schedule === null) {
-    console.log(`[${timestamp}] Domenica: nessuna sessione da prenotare.`);
-    return;
-  }
-
+async function book(): Promise<void> {
   const date = targetDate();
-  console.log(
-    `[${timestamp}] Avvio prenotazione per il ${date} (oggi + 7 giorni) — apertura prenotazioni: ${schedule.openTime}`,
-  );
 
   // 1. Recupera le sessioni disponibili nella data target
   const admissions = await fetchAdmissions(date);
@@ -71,11 +59,43 @@ async function main(): Promise<void> {
   await sendTelegram(msg);
 }
 
+async function main(): Promise<void> {
+  const schedule = bookingSchedule();
+  const timestamp = new Date().toLocaleString("it-IT", {
+    timeZone: "Europe/Rome",
+  });
+
+  if (schedule === null) {
+    console.log(`[${timestamp}] Domenica: nessuna sessione da prenotare.`);
+    return;
+  }
+
+  console.log(
+    `[${timestamp}] Avvio prenotazione per il ${targetDate()} (oggi + 7 giorni) — apertura prenotazioni: ${schedule.openTime}`,
+  );
+
+  try {
+    await book();
+  } catch (err) {
+    if (err instanceof AuthError) {
+      // Token scaduto: re-login e un secondo tentativo
+      const newToken = await refreshToken();
+      await sendTelegram(
+        `🔄 Token TIMP rinnovato automaticamente. Nuovo tentativo di prenotazione in corso...`,
+      );
+      console.log(`[Auth] Nuovo token: ${newToken.slice(0, 8)}...`);
+      await book();
+    } else {
+      throw err;
+    }
+  }
+}
+
 main().catch(async (err) => {
-  const isAuth = err instanceof AuthError;
-  const msg = isAuth
-    ? `🔴 ${err.message}`
-    : `❌ Errore inatteso: ${err instanceof Error ? err.message : String(err)}`;
+  const msg =
+    err instanceof AuthError
+      ? `🔴 Re-login fallito: ${err.message}`
+      : `❌ Errore inatteso: ${err instanceof Error ? err.message : String(err)}`;
   console.error(msg);
   await sendTelegram(msg).catch(() => {});
   process.exit(1);
