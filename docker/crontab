@@ -1,0 +1,11 @@
+# Lun, Mer, Ven — apertura prenotazioni alle 08:00
+0 8 * * 1,3,5 cd /app && node dist/index.js
+
+# Mar, Gio — apertura prenotazioni alle 13:00
+0 13 * * 2,4 cd /app && node dist/index.js
+
+# Sab — apertura prenotazioni alle 06:00
+0 6 * * 6 cd /app && node dist/index.js
+
+# Check validità token ogni sera alle 17:00
+0 17 * * * cd /app && node dist/check-token.js

@@ -141,6 +141,45 @@ tail -f /tmp/palestra.log
 
 ---
 
+## Esecuzione con Docker
+
+In alternativa al crontab dell'host, il servizio può girare in un container che:
+
+- esegue gli stessi job con [supercronic](https://github.com/aptible/supercronic) (orari in [docker/crontab](docker/crontab), timezone `Europe/Rome`)
+- si riavvia sempre (`restart: unless-stopped`; se scheduler o updater terminano, il container esce e Docker lo riavvia). Un job che fallisce non ferma lo scheduler
+- ogni `UPDATE_INTERVAL` secondi (default 300) fa `git fetch` e, se `origin/master` è avanti, `git reset --hard`, `npm ci` (solo se cambia il lock) e `npm run build`
+
+### Setup
+
+1. Crea il file `.env` (vedi sopra): viene montato nel container, così il token rinnovato resta persistente.
+2. Crea una **deploy key** read-only e aggiungila su GitHub (repo → Settings → Deploy keys):
+
+   ```bash
+   ssh-keygen -t ed25519 -f ~/.ssh/timp_deploy -N ""
+   ```
+
+3. Avvia:
+
+   ```bash
+   docker compose up -d --build
+   ```
+
+### Comandi utili
+
+```bash
+docker compose logs -f                                # log di scheduler, job e updater
+docker compose exec timp node dist/check-token.js     # test manuale
+docker compose down                                   # stop
+```
+
+Variabili in [docker-compose.yml](docker-compose.yml): `UPDATE_INTERVAL` (secondi), `UPDATE_BRANCH` (default `master`).
+
+> Modifiche a `Dockerfile` o `docker/*.sh` richiedono `docker compose up -d --build`; il codice in `src/` si aggiorna da solo.
+>
+> Se usi il container, rimuovi le righe del crontab dell'host per evitare doppie prenotazioni.
+
+---
+
 ## Notifiche Telegram
 
 Lo script invia un messaggio Telegram in tutti questi casi:
