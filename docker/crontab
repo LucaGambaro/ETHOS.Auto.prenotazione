@@ -1,3 +1,7 @@
+# Letto da supercronic (avviato da entrypoint.sh). Orari in Europe/Rome (variabile TZ).
+# Ricaricato a caldo da update.sh (SIGUSR2) dopo ogni aggiornamento del codice.
+# Formato: minuto ora giorno-mese mese giorno-settimana comando
+
 # Lun, Mer, Ven — apertura prenotazioni alle 08:00
 0 8 * * 1,3,5 cd /app && node dist/index.js
 
@@ -9,3 +13,4 @@
 
 # Check validità token ogni sera alle 17:00
 0 17 * * * cd /app && node dist/check-token.js
+# (cd /app: dotenv legge .env dalla cwd, e auth.ts riscrive lo stesso file)

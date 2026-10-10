@@ -1,4 +1,7 @@
+# Escluso dal build context: npm ci lo reinstalla dentro l'immagine
 node_modules
+# Segreti: non devono finire nell'immagine, vengono montati a runtime dal compose
 .env
 .serena
 *.log
+# NB: .git non è escluso di proposito, serve a update.sh per fare git fetch/reset

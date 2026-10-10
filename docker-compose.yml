@@ -1,20 +1,30 @@
 services:
   timp:
+    # Costruisce l'immagine dal Dockerfile nella root del repo
     build: .
+    # Riavvia il container se esce (entrypoint.sh esce con 1 quando un processo muore) o al riavvio della macchina
     restart: unless-stopped
     environment:
       TZ: Europe/Rome
-      UPDATE_INTERVAL: "300"
+      # Ogni quanti secondi docker/update.sh controlla se ci sono nuovi commit
+      UPDATE_INTERVAL: "19200"
+      # Branch git da seguire per gli aggiornamenti
       UPDATE_BRANCH: master
+      # Accetta automaticamente la host key di GitHub al primo fetch (niente prompt interattivo)
       GIT_SSH_COMMAND: ssh -o StrictHostKeyChecking=accept-new
     volumes:
+      # .env NON è nell'immagine (.dockerignore): viene montato dall'host.
+      # auth.ts lo riscrive quando rinnova il token, quindi non è read-only e la modifica persiste sull'host
       - ./.env:/app/.env
+      # Deploy key SSH (sola lettura) usata da git fetch per accedere al repo
       - ~/.ssh/timp_deploy_docker:/root/.ssh/id_ed25519:ro
+    # Il container è "healthy" finché il processo supercronic è vivo
     healthcheck:
       test: ["CMD", "pgrep", "supercronic"]
       interval: 60s
       timeout: 5s
       retries: 3
+    # Log su file JSON con rotazione: max 3 file da 10 MB
     logging:
       driver: json-file
       options:
