@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TIMP · Prenotazioni automatiche</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Calistoga&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <span class="brand"><span class="brand-mark" aria-hidden="true">T</span>TIMP Auto</span>
+        <span class="label label-quiet"><span class="dot pulse"></span>Attivo</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="glow glow-hero" aria-hidden="true"></div>
+        <div class="container hero-grid">
+          <div class="reveal">
+            <span class="label"><span class="dot pulse"></span>Prenotazioni automatiche</span>
+            <h1 class="display hero-title">
+              La palestra si prenota
+              <span class="underlined"><span class="gradient-text">da sola</span></span>
+            </h1>
+            <p class="lead">
+              Scegli i giorni in cui vuoi allenarti. Lo script prenota la prima sessione libera
+              appena si aprono le iscrizioni e ti avvisa su Telegram.
+            </p>
+          </div>
+
+          <div class="hero-visual reveal" style="--delay: 0.15s">
+            <div class="ring" aria-hidden="true"></div>
+            <div class="gradient-border float">
+              <article class="next-card" aria-live="polite">
+                <span class="label label-quiet">Prossima prenotazione</span>
+                <p class="next-day" id="next-day">—</p>
+                <p class="next-meta" id="next-meta">Caricamento…</p>
+                <div class="next-target" id="next-target" hidden></div>
+              </article>
+            </div>
+            <div class="accent-block" aria-hidden="true"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="days-title">
+        <div class="container">
+          <div class="reveal">
+            <span class="label"><span class="dot"></span>Pianificazione</span>
+            <h2 class="display section-title" id="days-title">
+              Scegli i <span class="gradient-text">giorni</span>
+            </h2>
+            <p class="lead lead-narrow">
+              Attivando un giorno, lo script prenota la sessione di quello stesso giorno della
+              settimana successiva, nel momento in cui si aprono le iscrizioni. Le modifiche si
+              salvano subito.
+            </p>
+          </div>
+
+          <ul class="days" id="days"></ul>
+        </div>
+      </section>
+
+      <section class="section section-inverted" aria-labelledby="history-title">
+        <div class="dots" aria-hidden="true"></div>
+        <div class="glow glow-dark" aria-hidden="true"></div>
+        <div class="container history-grid">
+          <div class="reveal">
+            <span class="label label-dark"><span class="dot pulse"></span>Storico</span>
+            <h2 class="display section-title" id="history-title">
+              Cosa è <span class="gradient-text gradient-text-light">successo</span>
+            </h2>
+            <dl class="stats">
+              <div class="stat">
+                <dt>Prenotate</dt>
+                <dd id="stat-booked">0</dd>
+              </div>
+              <div class="stat">
+                <dt>Problemi</dt>
+                <dd id="stat-issues">0</dd>
+              </div>
+            </dl>
+          </div>
+          <ol class="history reveal" id="history" style="--delay: 0.15s"></ol>
+        </div>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="/app.js"></script>
+  </body>
+</html>

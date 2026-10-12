@@ -141,3 +141,6 @@ out
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Dati runtime della dashboard (impostazioni e storico)
+data/

@@ -1,5 +1,10 @@
 import { refreshToken } from "./auth.js";
-import { bookingSchedule, targetDate } from "./config.js";
+import path from "node:path";
+import { bookingSchedule, config, targetDate } from "./config.js";
+import { recordHistory } from "./history/recorder.js";
+import { createHistoryStore } from "./history/store.js";
+import { isBookingEnabled } from "./settings/booking-day.js";
+import { createSettingsStore } from "./settings/store.js";
 import { sendTelegram } from "./telegram.js";
 import {
   AuthError,
@@ -7,6 +12,13 @@ import {
   fetchAdmissions,
   fetchTicket,
 } from "./timp.js";
+
+const settingsStore = createSettingsStore(
+  path.join(config.dataDir, "settings.json"),
+);
+const historyStore = createHistoryStore(
+  path.join(config.dataDir, "history.json"),
+);
 
 async function book(): Promise<void> {
   const date = targetDate();
@@ -17,6 +29,11 @@ async function book(): Promise<void> {
   if (admissions.length === 0) {
     const msg = `⚠️ Nessuna sessione disponibile il ${date}`;
     console.log(msg);
+    await recordHistory(historyStore, {
+      targetDate: date,
+      outcome: "no_sessions",
+      message: msg,
+    });
     await sendTelegram(msg);
     return;
   }
@@ -31,6 +48,11 @@ async function book(): Promise<void> {
   if (!available) {
     const msg = `⚠️ Tutte le sessioni del ${date} sono al completo o già prenotate`;
     console.log(msg);
+    await recordHistory(historyStore, {
+      targetDate: date,
+      outcome: "full",
+      message: msg,
+    });
     await sendTelegram(msg);
     return;
   }
@@ -45,6 +67,12 @@ async function book(): Promise<void> {
   if (result === null) {
     const msg = `ℹ️ Sessione già prenotata (${date} ${available.sessionTime})`;
     console.log(msg);
+    await recordHistory(historyStore, {
+      targetDate: date,
+      outcome: "already_booked",
+      sessionTime: available.sessionTime,
+      message: msg,
+    });
     await sendTelegram(msg);
     return;
   }
@@ -56,6 +84,13 @@ async function book(): Promise<void> {
 
   const msg = `✅ Prenotazione confermata!\n📅 Data: ${date}\n⏰ Sessione: ${available.sessionTime}\n🎫 Ticket: ${ticket.id}\n📋 Stato: ${ticket.status}`;
   console.log(msg);
+  await recordHistory(historyStore, {
+    targetDate: date,
+    outcome: "booked",
+    sessionTime: available.sessionTime,
+    ticketId: String(ticket.id),
+    message: msg,
+  });
   await sendTelegram(msg);
 }
 
@@ -67,6 +102,14 @@ async function main(): Promise<void> {
 
   if (schedule === null) {
     console.log(`[${timestamp}] Domenica: nessuna sessione da prenotare.`);
+    return;
+  }
+
+  const settings = await settingsStore.load();
+  if (!isBookingEnabled(settings, new Date())) {
+    console.log(
+      `[${timestamp}] Giorno disattivato dalla dashboard: nessuna prenotazione.`,
+    );
     return;
   }
 
@@ -97,6 +140,11 @@ main().catch(async (err) => {
       ? `🔴 Re-login fallito: ${err.message}`
       : `❌ Errore inatteso: ${err instanceof Error ? err.message : String(err)}`;
   console.error(msg);
+  await recordHistory(historyStore, {
+    targetDate: targetDate(),
+    outcome: "error",
+    message: msg,
+  });
   await sendTelegram(msg).catch(() => {});
   process.exit(1);
 });

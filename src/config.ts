@@ -1,4 +1,6 @@
 import "dotenv/config";
+import path from "node:path";
+import { findDay, weekdayKey } from "./settings/days.js";
 
 export const config = {
   timpApiKey: process.env.TIMP_API_KEY ?? "",
@@ -9,6 +11,10 @@ export const config = {
   telegramBotToken: process.env.TELEGRAM_BOT_TOKEN ?? "",
   telegramChatId: process.env.TELEGRAM_CHAT_ID ?? "",
   timpBaseUrl: "https://panel.timp.pro/api/user_app/v2",
+  // Dati modificabili dalla dashboard (impostazioni e storico); cartella montata come volume in Docker
+  dataDir: process.env.DATA_DIR ?? path.resolve(process.cwd(), "data"),
+  dashboardHost: process.env.DASHBOARD_HOST ?? "127.0.0.1",
+  dashboardPort: Number(process.env.DASHBOARD_PORT ?? 3000),
 };
 
 /** Restituisce la data target: oggi + 7 giorni, nel formato YYYY-MM-DD (timezone Europe/Rome). */
@@ -37,23 +43,7 @@ export function bookingSchedule(): {
   hour: number;
   minute: number;
 } | null {
-  // Calcola il giorno della settimana corrente in Europe/Rome
-  const dayName = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Europe/Rome",
-    weekday: "short",
-  }).format(new Date()); // "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat" | "Sun"
-
-  switch (dayName) {
-    case "Mon":
-    case "Wed":
-    case "Fri":
-      return { openTime: "08:00", hour: 8, minute: 0 };
-    case "Tue":
-    case "Thu":
-      return { openTime: "13:00", hour: 13, minute: 0 };
-    case "Sat":
-      return { openTime: "06:00", hour: 6, minute: 0 };
-    default: // "Sun"
-      return null;
-  }
+  const day = findDay(weekdayKey(new Date()));
+  if (day === null) return null; // Domenica
+  return { openTime: day.openTime, hour: day.hour, minute: day.minute };
 }

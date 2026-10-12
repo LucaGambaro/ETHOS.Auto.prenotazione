@@ -10,10 +10,11 @@ Small TypeScript (ESM, Node >= 18, native `fetch`) script that auto-books gym se
 
 - `npm install`
 - `npm run build` — `tsc` into `dist/` (note: `dist/` is committed to git, so rebuild it when changing `src/`)
-- `npm run dev` — `tsx watch src/test.ts` (`src/test.ts` does not exist; run a script directly instead)
+- `npm run dev` — `tsx watch src/dashboard/main.ts` (dashboard with auto-reload)
 - `npx tsx src/index.ts` — run the booking flow
 - `npx tsx src/check-token.ts` — run the token validity check
-- No test runner or linter is configured (`npm test` is a placeholder).
+- `npm test` — `node:test` via tsx (`src/**/*.test.ts`); no linter is configured.
+- `npm run dashboard` — start the web dashboard (see below)
 
 Requires a `.env` (copy from `.env.example`); `dotenv` loads it from the current working directory.
 
@@ -34,3 +35,7 @@ Supporting modules:
 Token-expiry flow: `index.ts` catches `AuthError` from `book()`, calls `refreshToken()`, notifies on Telegram, and retries `book()` once. The top-level `main().catch` sends a Telegram error and exits 1.
 
 `info.md` holds raw curl examples of the TIMP endpoints (admissions, ticket) useful as an API reference.
+
+## Dashboard
+
+`src/dashboard/` is a dependency-free `node:http` server (`main.ts` entry, `server.ts` routing, `handlers.ts` thin request/response code, static assets in `public/`, served from `src/` even when running `dist/`). It edits `data/settings.json` (per-weekday on/off, `src/settings/`) and shows `data/history.json` (`src/history/`, appended by `index.ts` via `recordHistory`). `index.ts` reads the settings and exits early when today's weekday is disabled. Zod schemas live in `schema.ts` files, inferred types in `types.ts`.

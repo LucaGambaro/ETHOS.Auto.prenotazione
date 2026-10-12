@@ -1,9 +1,14 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.config = void 0;
 exports.targetDate = targetDate;
 exports.bookingSchedule = bookingSchedule;
 require("dotenv/config");
+const node_path_1 = __importDefault(require("node:path"));
+const days_js_1 = require("./settings/days.js");
 exports.config = {
     timpApiKey: process.env.TIMP_API_KEY ?? "",
     timpApiToken: process.env.TIMP_API_TOKEN ?? "",
@@ -13,6 +18,10 @@ exports.config = {
     telegramBotToken: process.env.TELEGRAM_BOT_TOKEN ?? "",
     telegramChatId: process.env.TELEGRAM_CHAT_ID ?? "",
     timpBaseUrl: "https://panel.timp.pro/api/user_app/v2",
+    // Dati modificabili dalla dashboard (impostazioni e storico); cartella montata come volume in Docker
+    dataDir: process.env.DATA_DIR ?? node_path_1.default.resolve(process.cwd(), "data"),
+    dashboardHost: process.env.DASHBOARD_HOST ?? "127.0.0.1",
+    dashboardPort: Number(process.env.DASHBOARD_PORT ?? 3000),
 };
 /** Restituisce la data target: oggi + 7 giorni, nel formato YYYY-MM-DD (timezone Europe/Rome). */
 function targetDate() {
@@ -35,22 +44,8 @@ function targetDate() {
  * Dom             → null (nessuna sessione)
  */
 function bookingSchedule() {
-    // Calcola il giorno della settimana corrente in Europe/Rome
-    const dayName = new Intl.DateTimeFormat("en-US", {
-        timeZone: "Europe/Rome",
-        weekday: "short",
-    }).format(new Date()); // "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat" | "Sun"
-    switch (dayName) {
-        case "Mon":
-        case "Wed":
-        case "Fri":
-            return { openTime: "08:00", hour: 8, minute: 0 };
-        case "Tue":
-        case "Thu":
-            return { openTime: "13:00", hour: 13, minute: 0 };
-        case "Sat":
-            return { openTime: "06:00", hour: 6, minute: 0 };
-        default: // "Sun"
-            return null;
-    }
+    const day = (0, days_js_1.findDay)((0, days_js_1.weekdayKey)(new Date()));
+    if (day === null)
+        return null; // Domenica
+    return { openTime: day.openTime, hour: day.hour, minute: day.minute };
 }

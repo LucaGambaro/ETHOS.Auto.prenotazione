@@ -5,3 +5,4 @@ node_modules
 .serena
 *.log
 # NB: .git non è escluso di proposito, serve a update.sh per fare git fetch/reset
+data

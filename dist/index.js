@@ -1,9 +1,19 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const auth_js_1 = require("./auth.js");
+const node_path_1 = __importDefault(require("node:path"));
 const config_js_1 = require("./config.js");
+const recorder_js_1 = require("./history/recorder.js");
+const store_js_1 = require("./history/store.js");
+const booking_day_js_1 = require("./settings/booking-day.js");
+const store_js_2 = require("./settings/store.js");
 const telegram_js_1 = require("./telegram.js");
 const timp_js_1 = require("./timp.js");
+const settingsStore = (0, store_js_2.createSettingsStore)(node_path_1.default.join(config_js_1.config.dataDir, "settings.json"));
+const historyStore = (0, store_js_1.createHistoryStore)(node_path_1.default.join(config_js_1.config.dataDir, "history.json"));
 async function book() {
     const date = (0, config_js_1.targetDate)();
     // 1. Recupera le sessioni disponibili nella data target
@@ -11,6 +21,11 @@ async function book() {
     if (admissions.length === 0) {
         const msg = `⚠️ Nessuna sessione disponibile il ${date}`;
         console.log(msg);
+        await (0, recorder_js_1.recordHistory)(historyStore, {
+            targetDate: date,
+            outcome: "no_sessions",
+            message: msg,
+        });
         await (0, telegram_js_1.sendTelegram)(msg);
         return;
     }
@@ -20,6 +35,11 @@ async function book() {
     if (!available) {
         const msg = `⚠️ Tutte le sessioni del ${date} sono al completo o già prenotate`;
         console.log(msg);
+        await (0, recorder_js_1.recordHistory)(historyStore, {
+            targetDate: date,
+            outcome: "full",
+            message: msg,
+        });
         await (0, telegram_js_1.sendTelegram)(msg);
         return;
     }
@@ -29,6 +49,12 @@ async function book() {
     if (result === null) {
         const msg = `ℹ️ Sessione già prenotata (${date} ${available.sessionTime})`;
         console.log(msg);
+        await (0, recorder_js_1.recordHistory)(historyStore, {
+            targetDate: date,
+            outcome: "already_booked",
+            sessionTime: available.sessionTime,
+            message: msg,
+        });
         await (0, telegram_js_1.sendTelegram)(msg);
         return;
     }
@@ -37,6 +63,13 @@ async function book() {
     const ticket = await (0, timp_js_1.fetchTicket)(result.ticketId);
     const msg = `✅ Prenotazione confermata!\n📅 Data: ${date}\n⏰ Sessione: ${available.sessionTime}\n🎫 Ticket: ${ticket.id}\n📋 Stato: ${ticket.status}`;
     console.log(msg);
+    await (0, recorder_js_1.recordHistory)(historyStore, {
+        targetDate: date,
+        outcome: "booked",
+        sessionTime: available.sessionTime,
+        ticketId: String(ticket.id),
+        message: msg,
+    });
     await (0, telegram_js_1.sendTelegram)(msg);
 }
 async function main() {
@@ -46,6 +79,11 @@ async function main() {
     });
     if (schedule === null) {
         console.log(`[${timestamp}] Domenica: nessuna sessione da prenotare.`);
+        return;
+    }
+    const settings = await settingsStore.load();
+    if (!(0, booking_day_js_1.isBookingEnabled)(settings, new Date())) {
+        console.log(`[${timestamp}] Giorno disattivato dalla dashboard: nessuna prenotazione.`);
         return;
     }
     console.log(`[${timestamp}] Avvio prenotazione per il ${(0, config_js_1.targetDate)()} (oggi + 7 giorni) — apertura prenotazioni: ${schedule.openTime}`);
@@ -70,6 +108,11 @@ main().catch(async (err) => {
         ? `🔴 Re-login fallito: ${err.message}`
         : `❌ Errore inatteso: ${err instanceof Error ? err.message : String(err)}`;
     console.error(msg);
+    await (0, recorder_js_1.recordHistory)(historyStore, {
+        targetDate: (0, config_js_1.targetDate)(),
+        outcome: "error",
+        message: msg,
+    });
     await (0, telegram_js_1.sendTelegram)(msg).catch(() => { });
     process.exit(1);
 });

@@ -221,3 +221,20 @@ Il rinnovo avviene in due occasioni:
 In entrambi i casi ricevi una notifica Telegram con l'esito.
 
 > **Se il re-login fallisce** (es. password cambiata) ricevi una notifica 🔴. In quel caso aggiorna `TIMP_PASSWORD` nel file `.env`.
+
+---
+
+## Dashboard
+
+Interfaccia web per scegliere **per quali giorni prenotare** e consultare lo storico degli esiti.
+
+```bash
+npm run dashboard        # sviluppo (tsx) → http://127.0.0.1:3000
+npm run start:dashboard  # dopo npm run build
+```
+
+- Ogni giorno (Lun–Sab) ha un interruttore: se disattivato, `index.ts` esce senza prenotare e senza notifiche. Di default sono tutti attivi. Domenica non ha sessioni.
+- Le impostazioni e lo storico stanno in `data/settings.json` e `data/history.json` (cartella ignorata da git, montata come volume in Docker; sovrascrivibile con `DATA_DIR`).
+- Variabili opzionali: `DASHBOARD_HOST` (default `127.0.0.1`), `DASHBOARD_PORT` (default `3000`).
+- **Nessuna autenticazione**: in Docker la porta è pubblicata solo su `127.0.0.1`; da remoto usa un tunnel SSH (`ssh -L 3000:127.0.0.1:3000 host`).
+- Test: `npm test`.
