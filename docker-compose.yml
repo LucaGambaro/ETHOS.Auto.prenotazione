@@ -15,8 +15,7 @@ services:
       # Accetta automaticamente la host key di GitHub al primo fetch (niente prompt interattivo)
       GIT_SSH_COMMAND: ssh -o StrictHostKeyChecking=accept-new
     ports:
-      # Dashboard raggiungibile solo da questa macchina (nessuna autenticazione): da remoto usa un tunnel SSH
-      - "127.0.0.1:3000:3000"
+      - "8083:80"
     volumes:
       # Impostazioni (giorni attivi) e storico delle prenotazioni, modificati dalla dashboard e dallo script
       - ./data:/app/data
